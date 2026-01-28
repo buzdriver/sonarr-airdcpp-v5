@@ -1,0 +1,23 @@
+version: '3'
+networks:
+  outside:
+    driver: bridge
+
+services:
+  snr_custom:
+    container_name: Sonarr-AirDCPP-v5
+    build:
+      context: .
+      dockerfile: Dockerfile.amd64
+    image: result/latest
+    ports:
+      - "8989:8989"
+    environment:
+      - PUID=99
+      - PGID=100
+    volumes:
+      - "${CONFIG_PATH:-./config}:/config"
+      - "${DOWNLOADS_PATH:-./downloads}:/CacheMedia/Downloads"
+      - "${RAR2FS_PATH:-./rar2fs}:/mnt/rar2fs"
+      - "${SYMLINK_PATH:-./symlink}:/mnt/symlink"
+      - "${MOVIES_PATH:-./movies}:/mnt/movies"

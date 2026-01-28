@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<Container>
+  <Name>Sonarr-AirDCPP-v5</Name>
+  <Repository>buzdriver/sonarr-airdcpp-v5:latest</Repository>
+  <Network>bridge</Network>
+  <MyIP/>
+  <Shell>sh</Shell>
+  <Privileged>false</Privileged>
+  <Support>https://hub.docker.com/repository/docker/buzdriver/sonarr-airdcpp-v5</Support>
+  <Project>https://hub.docker.com/repository/docker/buzdriver/sonarr-airdcpp-v5</Project>
+  <Overview>Sonarr with AirDC++ index- and downloader</Overview>
+  <Category>Media</Category>
+  <WebUI>http://[IP]:[PORT:8989]</WebUI>
+
+  <!-- Ports -->
+  <Config Name="WEBUI_PORT" Target="8989" Default="8989" Description="WebUI Port" Type="Port" Display="always" />
+
+  <!-- Paths (Volumes) -->
+  <Config Name="CONFIG_PATH" Target="/config" Default="/mnt/cache/appdata/Sonarr-AirDCPP-docker" Mode="rw" Description="Sonarr config path" Type="Path" Display="always" />
+  <Config Name="DOWNLOADS_PATH" Target="/Share/Downloads" Default="/mnt/user/Media/Downloads" Mode="rw" Description="AirDCPP downloads path" Type="Path" Display="always" />
+  <Config Name="RAR2FS_PATH" Target="/mnt/rar2fs" Default="/mnt/cache/appdata/rar2fs/unraid/#SERIE" Mode="rw" Description="rar2fs extracted movie path" Type="Path" Display="always" />
+  <Config Name="SYMLINK_PATH" Target="/mnt/symlink" Default="/mnt/user/Media/SymLinkSerie" Mode="rw" Description="Sonarr symlink output path" Type="Path" Display="always" />
+  <Config Name="MOVIES_PATH" Target="/mnt/serie" Default="/mnt/user/Media/#SERIE" Mode="rw" Description="Serie library path" Type="Path" Display="always" />
+
+  <!-- Environment Variables -->
+  <Config Name="PUID" Target="PUID" Default="99" Description="User ID (PUID) to run the container as" Type="Variable" Display="always" />
+  <Config Name="PGID" Target="PGID" Default="100" Description="Group ID (PGID) to run the container as" Type="Variable" Display="always" />
+</Container>
