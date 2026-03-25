@@ -79,6 +79,9 @@ jobs:
             # nightly builds (schedule only)
             type=raw,value=nightly,enable=${{ github.event_name == 'schedule' }}
 
+            # dev builds (main branch)
+            type=raw,value=dev,enable=${{ github.ref_type == 'branch' }}
+
       - name: Build and push
         if: github.event_name != 'schedule' || steps.changed.outputs.changed == 'true'
         uses: docker/build-push-action@v5
