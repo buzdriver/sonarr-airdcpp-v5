@@ -70,14 +70,14 @@ jobs:
         with:
           images: buzdriver/sonarr-airdcpp-v5
           tags: |
-            # latest ONLY on release
-            type=raw,value=latest,enable={{is_tag}}
+            # latest ONLY on release (tag push)
+            type=raw,value=latest,enable=${{ github.ref_type == 'tag' }}
 
             # version tags
             type=ref,event=tag
 
-            # nightly builds
-            type=raw,value=nightly,enable={{is_schedule}}
+            # nightly builds (schedule only)
+            type=raw,value=nightly,enable=${{ github.event_name == 'schedule' }}
 
       - name: Build and push
         if: github.event_name != 'schedule' || steps.changed.outputs.changed == 'true'
