@@ -13,6 +13,12 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
+      - name: Get base image digest
+        id: base
+        run: |
+          DIGEST=$(docker buildx imagetools inspect ghcr.io/linuxserver/baseimage-ubuntu:focal --format '{{.Manifest.Digest}}')
+          echo "digest=$DIGEST" >> $GITHUB_OUTPUT
+
       - name: Generate version
         id: version
         run: |
@@ -31,3 +37,6 @@ jobs:
         with:
           tag_name: ${{ steps.version.outputs.version }}
           generate_release_notes: true
+          body: |
+            Base image: ghcr.io/linuxserver/baseimage-ubuntu:focal  
+            Digest: ${{ steps.base.outputs.digest }}
