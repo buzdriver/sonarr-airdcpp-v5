@@ -16,7 +16,7 @@ jobs:
       - name: Get base image digest
         id: base
         run: |
-          DIGEST=$(docker buildx imagetools inspect ghcr.io/linuxserver/baseimage-ubuntu:focal --format '{{.Manifest.Digest}}')
+          DIGEST=$(docker buildx imagetools inspect ghcr.io/linuxserver/baseimage-ubuntu:noble --format '{{.Manifest.Digest}}')
           echo "digest=$DIGEST" >> $GITHUB_OUTPUT
 
       - name: Generate version
@@ -38,5 +38,5 @@ jobs:
           tag_name: ${{ steps.version.outputs.version }}
           generate_release_notes: true
           body: |
-            Base image: ghcr.io/linuxserver/baseimage-ubuntu:focal  
+            Base image: ghcr.io/linuxserver/baseimage-ubuntu:noble  
             Digest: ${{ steps.base.outputs.digest }}

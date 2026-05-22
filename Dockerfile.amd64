@@ -1,24 +1,25 @@
-FROM ghcr.io/linuxserver/baseimage-ubuntu:focal
+FROM ghcr.io/linuxserver/baseimage-ubuntu:noble
 
 ARG DEBIAN_FRONTEND="noninteractive"
 ENV XDG_CONFIG_HOME="/config/xdg"
 
 RUN echo "**** install base deps ****" && \
     apt-get update && \
+    apt-get upgrade -y && \
     apt-get install --no-install-recommends -y \
         ca-certificates \
         curl \
         gnupg \
         jq \
-        libicu66 \
+        libicu74 \
         libmediainfo0v5 \
         sqlite3 \
     && rm -rf /var/lib/apt/lists/*
 
-RUN echo "**** install aspnetcore runtime 8 (net8.0.12 compatible) ****" && \
+RUN echo "**** install aspnetcore runtime 8 ****" && \
     curl -fsSL https://packages.microsoft.com/keys/microsoft.asc \
       | gpg --dearmor -o /usr/share/keyrings/microsoft.gpg && \
-    echo "deb [arch=amd64 signed-by=/usr/share/keyrings/microsoft.gpg] https://packages.microsoft.com/ubuntu/20.04/prod focal main" \
+    echo "deb [arch=amd64 signed-by=/usr/share/keyrings/microsoft.gpg] https://packages.microsoft.com/ubuntu/24.04/prod noble main" \
       > /etc/apt/sources.list.d/microsoft-prod.list && \
     apt-get update && \
     apt-get install --no-install-recommends -y aspnetcore-runtime-8.0 && \

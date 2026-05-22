@@ -28,7 +28,7 @@ jobs:
       - name: Get base image digest
         id: base
         run: |
-          DIGEST=$(docker buildx imagetools inspect ghcr.io/linuxserver/baseimage-ubuntu:focal --format '{{json .Manifest.Digest}}' | tr -d '"')
+          DIGEST=$(docker buildx imagetools inspect ghcr.io/linuxserver/baseimage-ubuntu:noble --format '{{json .Manifest.Digest}}' | tr -d '"')
           test -n "$DIGEST"
           echo "digest=$DIGEST" >> "$GITHUB_OUTPUT"
 
