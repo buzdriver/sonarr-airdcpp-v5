@@ -37,7 +37,9 @@ jobs:
         uses: actions/cache@v5
         with:
           path: .digest
-          key: base-digest
+          key: base-digest-${{ github.run_id }}
+          restore-keys: |
+            base-digest-
 
       - name: Load previous digest
         id: prev
@@ -96,12 +98,12 @@ jobs:
         if: steps.changed.outputs.changed == 'true'
         run: echo "${{ steps.base.outputs.digest }}" > .digest
 
-      - name: Update cache
-        if: steps.changed.outputs.changed == 'true'
-        uses: actions/cache@v5
-        with:
-          path: .digest
-          key: base-digest
+      # - name: Update cache
+      #   if: steps.changed.outputs.changed == 'true'
+      #   uses: actions/cache@v5
+      #   with:
+      #     path: .digest
+      #     key: base-digest
 
       # - name: Auto tag release
       #   if: steps.changed.outputs.changed == 'true' && github.event_name == 'schedule'
