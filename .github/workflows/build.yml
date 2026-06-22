@@ -1,0 +1,158 @@
+name: Build and Push Docker Image
+on:
+  push:
+    branches: [ "main" ]
+    tags:
+      - 'v*'
+  schedule:
+    - cron: "0 10 * * *"
+permissions:
+  contents: write
+  issues: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/login-action@v4
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Get base image digest
+        id: base
+        run: |
+          DIGEST=$(docker buildx imagetools inspect ghcr.io/linuxserver/baseimage-ubuntu:noble --format '{{json .Manifest.Digest}}' | tr -d '"')
+          test -n "$DIGEST"
+          echo "digest=$DIGEST" >> "$GITHUB_OUTPUT"
+
+      - name: Restore digest cache
+        uses: actions/cache@v5
+        with:
+          path: .digest
+          key: base-digest-${{ github.run_id }}
+          restore-keys: |
+            base-digest-
+
+      - name: Restore dev timestamp cache
+        uses: actions/cache@v5
+        with:
+          path: .dev-built-at
+          key: dev-built-at-${{ github.run_id }}
+          restore-keys: |
+            dev-built-at-
+
+      - name: Load previous digest
+        id: prev
+        run: |
+          if [ -f .digest ]; then
+            echo "digest=$(cat .digest)" >> $GITHUB_OUTPUT
+          else
+            echo "digest=none" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Check if changed
+        id: changed
+        run: |
+          if [ "${{ steps.base.outputs.digest }}" != "${{ steps.prev.outputs.digest }}" ]; then
+            echo "changed=true" >> $GITHUB_OUTPUT
+          else
+            echo "changed=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Write change summary
+        if: steps.changed.outputs.changed == 'true'
+        run: |
+          echo "## Base image updated" >> $GITHUB_STEP_SUMMARY
+          echo "- Old: ${{ steps.prev.outputs.digest }}" >> $GITHUB_STEP_SUMMARY
+          echo "- New: ${{ steps.base.outputs.digest }}" >> $GITHUB_STEP_SUMMARY
+
+      - name: Check promotion timer
+        id: promote
+        if: github.event_name == 'schedule' && steps.changed.outputs.changed == 'false'
+        run: |
+          if [ ! -f .dev-built-at ]; then
+            echo "ready=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          TS=$(cat .dev-built-at)
+          if [ "$TS" = "released" ]; then
+            echo "ready=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          FIVE_DAYS_AGO=$(date -d '5 days ago' -Iseconds)
+          if [[ "$TS" < "$FIVE_DAYS_AGO" ]]; then
+            echo "ready=true" >> $GITHUB_OUTPUT
+            echo "## Auto-release triggered" >> $GITHUB_STEP_SUMMARY
+            echo "dev has been stable for 5+ days — triggering release workflow." >> $GITHUB_STEP_SUMMARY
+          else
+            echo "ready=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v6
+        with:
+          images: buzdriver/sonarr-airdcpp-v5
+          tags: |
+            type=raw,value=latest,enable=${{ github.ref_type == 'tag' }}
+            type=ref,event=tag
+            type=raw,value=dev,enable=${{ (github.event_name == 'push' && github.ref_type == 'branch') || (github.event_name == 'schedule' && steps.changed.outputs.changed == 'true') }}
+
+      - name: Build and push
+        if: github.event_name != 'schedule' || steps.changed.outputs.changed == 'true'
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: ./Dockerfile.amd64
+          push: true
+          pull: true
+          tags: ${{ steps.meta.outputs.tags }}
+
+      - name: Save digest
+        if: steps.changed.outputs.changed == 'true'
+        run: echo "${{ steps.base.outputs.digest }}" > .digest
+
+      - name: Start promotion timer
+        if: steps.changed.outputs.changed == 'true' && github.event_name == 'schedule'
+        run: date -Iseconds > .dev-built-at
+
+      - name: Check for existing notification issue
+        id: existing
+        if: steps.changed.outputs.changed == 'true' && github.event_name == 'schedule'
+        run: |
+          NUMBER=$(gh issue list \
+            --label "base-image-update" \
+            --state open \
+            --json number \
+            --jq '.[0].number // ""')
+          echo "issue_number=$NUMBER" >> $GITHUB_OUTPUT
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Open notification issue
+        if: >
+          steps.changed.outputs.changed == 'true' &&
+          github.event_name == 'schedule' &&
+          steps.existing.outputs.issue_number == ''
+        run: |
+          BODY=$(printf '## Base image digest changed\n\n| | Digest |\n|---|---|\n| **Old** | `%s` |\n| **New** | `%s` |\n\nThe `dev` tag has been updated and the 5-day soak timer has started.\n\nA release will be triggered **automatically** once dev has been stable for 5 days.\nYou can also [trigger a release manually](../../actions/workflows/release.yml) at any time.\n\n_This issue will be closed automatically once a release is created._' \
+            "${{ steps.prev.outputs.digest }}" \
+            "${{ steps.base.outputs.digest }}")
+          gh issue create \
+            --title "Base image updated — dev live" \
+            --label "base-image-update" \
+            --body "$BODY"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Trigger release
+        if: steps.promote.outputs.ready == 'true'
+        run: gh workflow run release.yml --ref main
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Reset promotion timer
+        if: steps.promote.outputs.ready == 'true'
+        run: echo "released" > .dev-built-at

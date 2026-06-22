@@ -1,22 +1,20 @@
 name: Release
-
 on:
   workflow_dispatch:
-
 permissions:
   contents: write
-
+  issues: write
 jobs:
   release:
     runs-on: ubuntu-latest
-
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: Get base image digest
         id: base
         run: |
-          DIGEST=$(docker buildx imagetools inspect ghcr.io/linuxserver/baseimage-ubuntu:noble --format '{{.Manifest.Digest}}')
+          DIGEST=$(docker buildx imagetools inspect ghcr.io/linuxserver/baseimage-ubuntu:noble --format '{{json .Manifest.Digest}}' | tr -d '"')
+          test -n "$DIGEST"
           echo "digest=$DIGEST" >> $GITHUB_OUTPUT
 
       - name: Generate version
@@ -38,5 +36,19 @@ jobs:
           tag_name: ${{ steps.version.outputs.version }}
           generate_release_notes: true
           body: |
-            Base image: ghcr.io/linuxserver/baseimage-ubuntu:noble  
-            Digest: ${{ steps.base.outputs.digest }}
+            Base image: ghcr.io/linuxserver/baseimage-ubuntu:noble
+            Digest: `${{ steps.base.outputs.digest }}`
+
+      - name: Close notification issue
+        run: |
+          NUMBER=$(gh issue list \
+            --label "base-image-update" \
+            --state open \
+            --json number \
+            --jq '.[0].number // ""')
+          if [ -n "$NUMBER" ]; then
+            gh issue close "$NUMBER" \
+              --comment "Released **${{ steps.version.outputs.version }}**. Closing."
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
