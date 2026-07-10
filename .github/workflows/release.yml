@@ -9,6 +9,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+        with:
+          token: ${{ secrets.PAT_TOKEN}}
 
       - name: Get base image digest
         id: base
