@@ -28,7 +28,7 @@ RUN echo "**** install aspnetcore runtime 8 ****" && \
 RUN echo "**** install sonarr ****" && \
     mkdir -p /app/sonarr/bin && \
     curl -L -o /tmp/sonarr.tar.gz \
-      "https://github.com/nls44/Sonarr-AirDCPP/releases/download/v5.0.0.23/Sonarr.AirDCPP.5.0.0.23.linux-x64.tar.gz" && \
+      "https://github.com/nls44/Sonarr-AirDCPP/releases/download/v5.0.0.24/Sonarr.AirDCPP.5.0.0.24.linux-x64.tar.gz" && \
     tar -xzf /tmp/sonarr.tar.gz -C /app/sonarr/bin --strip-components=1 Sonarr && \
     rm -rf /tmp/* /app/sonarr/bin/Sonarr.Update /var/tmp/*
 
